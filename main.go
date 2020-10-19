@@ -185,7 +185,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func checkRSVPOverlap(meetingGiven models.Meeting) bool {
 	for _, participant := range meetingGiven.Participants {
-		var meetings []models.Meeting = getMeetingsArrayByParticipant(participant)
+		var meetings []models.Meeting = getAcceptedMeetingsArrayByParticipant(participant)
 
 		for _, meeting := range meetings {
 			if checkOverlapTime(meeting, meetingGiven.StartTime, meetingGiven.EndTime) {
@@ -236,6 +236,32 @@ func getMeetingsArrayByParticipant(participantCheck models.Participant) []models
 
 		for _, participant := range meeting.Participants {
 			if participant.Email == participantCheck.Email {
+				meetings = append(meetings, meeting)
+			}
+		}
+
+	}
+
+	return meetings
+}
+
+func getAcceptedMeetingsArrayByParticipant(participantCheck models.Participant) []models.Meeting {
+
+	var meetings []models.Meeting
+
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cursor.Close(context.TODO())
+	for cursor.Next(context.TODO()) {
+		var meeting models.Meeting
+		if err = cursor.Decode(&meeting); err != nil {
+			log.Fatal(err)
+		}
+
+		for _, participant := range meeting.Participants {
+			if participant.Email == participantCheck.Email && participant.Rsvp == "Yes" {
 				meetings = append(meetings, meeting)
 			}
 		}
