@@ -164,15 +164,19 @@ func createMeeting(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 	meeting.CreationTimeStamp = t.String()
 
-	// insert our book model.
-	result, err := collection.InsertOne(context.TODO(), meeting)
+	if !checkRSVPOverlap(meeting) {
 
-	if err != nil {
-		helper.GetError(err, w)
-		return
+		// insert our book model.
+		result, err := collection.InsertOne(context.TODO(), meeting)
+
+		if err != nil {
+			helper.GetError(err, w)
+			return
+		}
+
+		json.NewEncoder(w).Encode(result)
 	}
 
-	json.NewEncoder(w).Encode(result)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -185,12 +189,12 @@ func checkRSVPOverlap(meetingGiven models.Meeting) bool {
 
 		for _, meeting := range meetings {
 			if checkOverlapTime(meeting, meetingGiven.StartTime, meetingGiven.EndTime) {
-				return false
+				return true
 			}
 
 		}
 	}
-	return true
+	return false
 }
 
 func checkOverlapTime(meeting models.Meeting, startTime string, endTime string) bool {
